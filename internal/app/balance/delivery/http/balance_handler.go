@@ -3,13 +3,11 @@ package balance_handler
 import (
 	"avito-intern/internal/app/balance"
 	"avito-intern/internal/app/balance/delivery"
-	models2 "avito-intern/internal/app/balance/delivery/models"
-	"avito-intern/internal/app/balance/models"
+	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/middlewares"
 	"avito-intern/internal/pkg/handler"
 	"avito-intern/internal/pkg/utilits"
 	"github.com/gorilla/mux"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -27,7 +25,7 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 		logger:  logger,
 		usecase: uc,
 		HelpHandlers: handler.HelpHandlers{
-			utilits.Responder{
+			Responder: utilits.Responder{
 				LogObject: utilits.NewLogObject(logger),
 			},
 		},
@@ -36,7 +34,7 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 	h.router.HandleFunc("/balance/{user_id:[0-9]+}", h.GetBalanceHandler).Methods(http.MethodGet)
 	h.router.HandleFunc("/balance/{user_id:[0-9]+}", h.UpdateBalanceHandler).Methods(http.MethodPost)
 	h.router.HandleFunc("/transfer", h.TransferMoneyHandler).Methods(http.MethodPost)
-	h.router.HandleFunc("/transaction", h.TransactionHandler).Methods(http.MethodPost)
+	//h.router.HandleFunc("/transaction", h.TransactionHandler).Methods(http.MethodPost)
 
 	utilitiesMiddleware := middlewares.NewUtilitiesMiddleware(h.logger)
 	h.router.Use(utilitiesMiddleware.UpgradeLogger)
@@ -58,24 +56,42 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 
 	h.Log(r).Debugf("GET_BALANCE_HANDLER: get balance %v user_id = %v")
 
-	h.Respond(w, r, http.StatusOK, models2.RespondBalance{Balance: amount})
+	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{Balance: amount})
 }
 func (h *BalanceHandler) TransferMoneyHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-func (h *BalanceHandler) TransactionHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	req := &models2.RequestUpdateBalance{}
-	err := h.GetRequestBody(w, r, req, *bluemonday.UGCPolicy())
+	req := &request_response_models.RequestTransfer{}
+	err := h.GetRequestBody(w, r, req)
 	if err != nil {
 		h.Log(r).Warnf("can not decode body %s", err)
 		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
 		return
 	}
-	if req.Type != models.ADD_BALANCE && req.Type != models.DIFF_BALANCE {
-		h.Log(r).Warnf("invalid body - incorrect Type of updateBalance operation %s", err)
+	if err = req.Validate(); err != nil {
+		h.Log(r).Warnf("invalid RequestTransferMoney body err: %v body: %v", err, req)
+		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		return
+	}
+	res, err := h.usecase.TransferMoney(req.SenderID, req.ReceiverID, req.Amount)
+	if err != nil {
+		h.UsecaseError(w, r, err, balance.CodeByErrorTransferHandler)
+		return
+	}
+	h.Respond(w, r, http.StatusOK, request_response_models.ResponseTransfer{
+		SenderID:        res.SenderID,
+		SenderBalance:   res.SenderBalance,
+		ReceiverID:      res.ReceiverID,
+		ReceiverBalance: res.ReceiverBalance})
+}
+func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	req := &request_response_models.RequestUpdateBalance{}
+	err := h.GetRequestBody(w, r, req)
+	if err != nil {
+		h.Log(r).Warnf("can not decode body %s", err)
+		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		return
+	}
+	if err = req.Validate(); err != nil {
+		h.Log(r).Warnf("invalid RequestUpdateBalance body err: %v body: %v", err, req)
 		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
 		return
 	}
@@ -85,10 +101,10 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	}
 	newBalance, err := h.usecase.UpdateBalance(userID, req.Amount, int(req.Type))
 	if err != nil {
-		h.UsecaseError(w, r, err, balance.CodeByErrorGetBalance)
+		h.UsecaseError(w, r, err, balance.CodeByErrorBalanceHandler)
 		return
 	}
-	h.Respond(w, r, http.StatusOK, models2.RespondBalance{UserID: userID, Balance: newBalance})
+	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{UserID: userID, Balance: newBalance})
 }
 
 func (h *BalanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

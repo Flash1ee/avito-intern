@@ -6,7 +6,6 @@ import (
 	"avito-intern/internal/pkg/utilits"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -22,9 +21,7 @@ type RespondError struct {
 
 type CodeMap map[error]RespondError
 
-type Sanitizable interface {
-	Sanitize(sanitizer bluemonday.Policy)
-}
+type RequestBody interface{}
 
 type HelpHandlers struct {
 	utilits.Responder
@@ -66,7 +63,7 @@ func (h *HelpHandlers) GetInt64FromParam(w http.ResponseWriter, r *http.Request,
 }
 
 func (h *HelpHandlers) GetRequestBody(w http.ResponseWriter, r *http.Request,
-	reqStruct Sanitizable, sanitizer bluemonday.Policy) error {
+	reqStruct RequestBody) error {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -79,7 +76,6 @@ func (h *HelpHandlers) GetRequestBody(w http.ResponseWriter, r *http.Request,
 	if err := decoder.Decode(reqStruct); err != nil {
 		return err
 	}
-	reqStruct.Sanitize(sanitizer)
 
 	return nil
 }
