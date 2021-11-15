@@ -1,0 +1,7 @@
+log_level = "debug"
+log_path = "./logs/"
+bind_addr = ":8080"
+
+[server]
+#database_url = "host=balance-db port=5432 user=flashie password=avito dbname=balance-db sslmode=disable"
+database_url = "port=5432 user=flashie password=1111 dbname=balance_db sslmode=disable"
