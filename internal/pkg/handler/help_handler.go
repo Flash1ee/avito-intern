@@ -38,7 +38,7 @@ func (h *HelpHandlers) UsecaseError(w http.ResponseWriter, r *http.Request, usec
 	}
 
 	respond := RespondError{http.StatusServiceUnavailable,
-		errors.New("UnknownError"), logrus.ErrorLevel}
+		app.UnknownError, logrus.ErrorLevel}
 
 	for err, respondErr := range codeByErr {
 		if errors.Is(usecaseErr, err) {
