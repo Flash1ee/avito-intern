@@ -3,6 +3,7 @@ package balance_handler
 import (
 	"avito-intern/internal/app/balance/balance_repository"
 	"avito-intern/internal/app/balance/balance_usecase"
+	"avito-intern/internal/pkg/exchange"
 	"avito-intern/internal/pkg/handler"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 var CodeByErrorGetBalance = handler.CodeMap{
 	balance_repository.NotFound:     {http.StatusNotFound, handler.UserNotFound, logrus.WarnLevel},
 	balance_repository.DefaultErrDB: {http.StatusInternalServerError, handler.BDError, logrus.ErrorLevel},
+	exchange.NotSupportedCurrency:   {http.StatusUnprocessableEntity, handler.NotSupportedCurrency, logrus.ErrorLevel},
+	exchange.InternalError:          {http.StatusInternalServerError, handler.CurrencyConvertError, logrus.ErrorLevel},
 }
 var CodeByErrorUpdateBalanceHandler = handler.CodeMap{
 	balance_repository.NotFound:     {http.StatusNotFound, handler.UserNotFound, logrus.WarnLevel},

@@ -4,6 +4,7 @@ import (
 	"avito-intern/internal/app/balance"
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/middlewares"
+	"avito-intern/internal/pkg/exchange"
 	"avito-intern/internal/pkg/handler"
 	"avito-intern/internal/pkg/utilits"
 	"github.com/gorilla/mux"
@@ -44,12 +45,14 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 
 // GetBalanceHandler
 // @Summary get user balance
-// @Description get user balance with id from query
 // @Produce json
 // @Param user_id path int true "user_id in balanceApp"
+// @Param currency query string true "currency to convert"
+
 // @Success 200 {object} models.ResponseBalance
 // @Failure 400 {object} models.ErrResponse "invalid query param"
 // @Failure 404 {object} models.ErrResponse "user with this id not found"
+// @Failure 422 {object} models.ErrResponse "Not supported currency | convert currency error"
 // @Failure 500 {object} models.ErrResponse "internal error"
 // @Router /balance/{:user_id} [GET]
 func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +64,17 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGetBalance)
 		return
+	}
+	valute := r.URL.Query().Get("currency")
+	if valute != "" {
+		exchangeBalance, err := exchange.Exchange(amount, valute)
+		if err != nil {
+			h.Log(r).Warn(err)
+			h.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		amount = exchangeBalance
+		h.Log(r).Info("exchange data", exchangeBalance)
 	}
 
 	h.Log(r).Debugf("GET_BALANCE_HANDLER: get balance %v user_id = %v", amount, userID)

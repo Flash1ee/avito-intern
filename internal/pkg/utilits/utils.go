@@ -23,11 +23,10 @@ func NewLogger(config *configs.Config) (log *logrus.Logger, closeResource func()
 
 	logger := logrus.New()
 	currentTime := time.Now().In(time.UTC)
-	var servicePath string
 
 	formatted := config.LogAddr + fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
-		currentTime.Hour(), currentTime.Minute(), currentTime.Second()) + servicePath + ".log"
+		currentTime.Hour(), currentTime.Minute(), currentTime.Second()) + ".log"
 
 	f, err := os.OpenFile(formatted, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
