@@ -30,8 +30,8 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 		},
 	}
 
-	h.router.HandleFunc("/balance/{user_id:[0-9]+}", h.GetBalanceHandler).Methods(http.MethodGet)
-	h.router.HandleFunc("/balance/{user_id:[0-9]+}", h.UpdateBalanceHandler).Methods(http.MethodPost)
+	h.router.HandleFunc("/balance/{user_id}", h.GetBalanceHandler).Methods(http.MethodGet)
+	h.router.HandleFunc("/balance/{user_id}", h.UpdateBalanceHandler).Methods(http.MethodPost)
 	h.router.HandleFunc("/transfer", h.TransferMoneyHandler).Methods(http.MethodPost)
 	//h.router.HandleFunc("/transaction", h.TransactionHandler).Methods(http.MethodPost)
 
