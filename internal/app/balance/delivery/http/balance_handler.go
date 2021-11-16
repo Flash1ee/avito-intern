@@ -54,17 +54,17 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 // @Failure 500 {object} models.ErrResponse "internal error"
 // @Router /balance/{:user_id} [GET]
 func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	res, ok := h.GetInt64FromParam(w, r, "user_id")
+	userID, ok := h.GetInt64FromParam(w, r, "user_id")
 	if !ok {
 		return
 	}
-	amount, err := h.usecase.GetBalance(res)
+	amount, err := h.usecase.GetBalance(userID)
 	if err != nil {
 		h.UsecaseError(w, r, err, balance.CodeByErrorGetBalance)
 		return
 	}
 
-	h.Log(r).Debugf("GET_BALANCE_HANDLER: get balance %v user_id = %v")
+	h.Log(r).Debugf("GET_BALANCE_HANDLER: get balance %v user_id = %v", amount, userID)
 
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{Balance: amount})
 }

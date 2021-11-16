@@ -20,12 +20,12 @@ func NewBalanceUsecase(repo *balance_repository.BalanceRepository) *BalanceUseca
 //		balance_repository.NotFound
 // 		app.GeneralError with Errors
 // 			balance_repository.DefaultErrDB
-func (uc *BalanceUsecase) GetBalance(userID int64) (int64, error) {
-	balance, err := uc.repo.GetBalance(userID)
+func (uc *BalanceUsecase) GetBalance(userID int64) (float64, error) {
+	user, err := uc.repo.FindUserByID(userID)
 	if err != nil {
-		return app.InvalidInt, err
+		return app.InvalidFloat, err
 	}
-	return balance, nil
+	return user.Amount, nil
 }
 
 // UpdateBalance Errors:
@@ -33,29 +33,29 @@ func (uc *BalanceUsecase) GetBalance(userID int64) (int64, error) {
 //		balance_repository.NotFound
 // 		app.GeneralError with Errors
 // 			balance_repository.DefaultErrDB
-func (uc *BalanceUsecase) UpdateBalance(userID int64, amount int64, updateType int) (int64, error) {
+func (uc *BalanceUsecase) UpdateBalance(userID int64, amount float64, updateType int) (float64, error) {
 	balance, err := uc.repo.FindUserByID(userID)
 	if err != nil {
 		if err != balance_repository.NotFound || updateType != models.ADD_BALANCE {
-			return app.InvalidInt, err
+			return app.InvalidFloat, err
 		}
 	}
 	if balance == nil {
 		err = uc.repo.CreateAccount(userID)
 		if err != nil {
-			return app.InvalidInt, err
+			return app.InvalidFloat, err
 		}
 	}
 	if updateType == models.DIFF_BALANCE {
 		if balance.Amount < amount {
-			return app.InvalidInt, NotEnoughMoney
+			return app.InvalidFloat, NotEnoughMoney
 		}
 		amount *= -1
 	}
 	newBalance, err := uc.repo.AddBalance(userID, amount)
 
 	if err != nil {
-		return app.InvalidInt, err
+		return app.InvalidFloat, err
 	}
 	return newBalance, nil
 }
@@ -65,7 +65,7 @@ func (uc *BalanceUsecase) UpdateBalance(userID int64, amount int64, updateType i
 //		balance_repository.NotFound
 // 		app.GeneralError with Errors
 // 			balance_repository.DefaultErrDB
-func (uc *BalanceUsecase) TransferMoney(senderID int64, receiverID int64, amount int64) (*models.TransferMoney, error) {
+func (uc *BalanceUsecase) TransferMoney(senderID int64, receiverID int64, amount float64) (*models.TransferMoney, error) {
 	sender, err := uc.repo.FindUserByID(senderID)
 	if err != nil {
 		return nil, err

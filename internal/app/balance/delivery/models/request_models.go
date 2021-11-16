@@ -13,18 +13,25 @@ func validIntFunc(value interface{}) error {
 	}
 	return nil
 }
+func validFloatFunc(value interface{}) error {
+	res, ok := value.(float64)
+	if !ok || res < 0 {
+		return errors.New("invalid field")
+	}
+	return nil
+}
 
 type RequestTransfer struct {
-	SenderID   int64 `json:"sender_id" validate:"required"`
-	ReceiverID int64 `json:"receiver_id" validate:"required"`
-	Amount     int64 `json:"amount" validate:"required"`
+	SenderID   int64   `json:"sender_id" validate:"required"`
+	ReceiverID int64   `json:"receiver_id" validate:"required"`
+	Amount     float64 `json:"amount" validate:"required"`
 }
 
 func (req *RequestTransfer) Validate() error {
 	return validation.ValidateStruct(req,
 		validation.Field(&req.SenderID, validation.By(validIntFunc)),
 		validation.Field(&req.ReceiverID, validation.By(validIntFunc)),
-		validation.Field(&req.Amount, validation.By(validIntFunc)))
+		validation.Field(&req.Amount, validation.By(validFloatFunc)))
 }
 
 type RequestBalance struct {
@@ -37,8 +44,8 @@ func (req *RequestBalance) Validate() error {
 }
 
 type RequestUpdateBalance struct {
-	Type   int64 `json:"operation"`
-	Amount int64 `json:"amount"`
+	Type   int64   `json:"operation"`
+	Amount float64 `json:"amount"`
 }
 
 func (req *RequestUpdateBalance) Validate() error {
@@ -50,6 +57,6 @@ func (req *RequestUpdateBalance) Validate() error {
 		return nil
 	}
 	return validation.ValidateStruct(req,
-		validation.Field(&req.Amount, validation.By(validIntFunc)),
+		validation.Field(&req.Amount, validation.By(validFloatFunc)),
 		validation.Field(&req.Type, validation.By(validTypeFunc)))
 }

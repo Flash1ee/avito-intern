@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+const InvalidFloat = float64(-1)
 const InvalidInt = -1
 
 var UnknownError = errors.New("gotten unspecified error")
