@@ -43,6 +43,16 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 	return h
 }
 
+// GetBalanceHandler
+// @Summary get user balance
+// @Description get user balance with id from query
+// @Produce json
+// @Param user_id path int true "user_id in balanceApp"
+// @Success 200 {object} models.ResponseBalance
+// @Failure 400 {object} models.ErrResponse "invalid query param"
+// @Failure 404 {object} models.ErrResponse "user with this id not found"
+// @Failure 500 {object} models.ErrResponse "internal error"
+// @Router /balance/{:user_id} [GET]
 func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	res, ok := h.GetInt64FromParam(w, r, "user_id")
 	if !ok {
@@ -58,6 +68,17 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{Balance: amount})
 }
+
+// TransferMoneyHandler
+// @Summary transfer money
+// @Description money transfer between users
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.ResponseTransfer "Successfully transaction"
+// @Failure 404 {object} models.ErrResponse "user with one of id in request body not found"
+// @Failure 422 {object} models.ErrResponse "invalid body in request || not enough money for transfer"
+// @Failure 500 {object} models.ErrResponse "internal error"
+// @Router /transfer [POST]
 func (h *BalanceHandler) TransferMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	req := &request_response_models.RequestTransfer{}
 	err := h.GetRequestBody(w, r, req)
@@ -82,6 +103,19 @@ func (h *BalanceHandler) TransferMoneyHandler(w http.ResponseWriter, r *http.Req
 		ReceiverID:      res.ReceiverID,
 		ReceiverBalance: res.ReceiverBalance})
 }
+
+// UpdateBalanceHandler
+// @Summary update user balance
+// @Description update user balance
+// @Produce json
+// @Param data body models.RequestUpdateBalance true "data for update balance, operation = 0 - writeOff money, operation = 1 - addMoney"
+// @Param user_id path int true "user_id in balanceApp"
+// @Success 200 {object} models.ResponseBalance
+// @Failure 400 {object} models.ErrResponse "invalid query param"
+// @Failure 404 {object} models.ErrResponse "user with this id not found"
+// @Failure 422 {object} models.ErrResponse "invalid body in request || not enough money for transfer"
+// @Failure 500 {object} models.ErrResponse "internal error"
+// @Router /balance/{:user_id} [POST]
 func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	req := &request_response_models.RequestUpdateBalance{}
 	err := h.GetRequestBody(w, r, req)

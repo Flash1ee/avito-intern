@@ -1,5 +1,9 @@
 package models
 
+type ErrResponse struct {
+	Err string `json:"error"`
+}
+
 type ResponseBalance struct {
 	UserID  int64 `json:"user_id,omitempty"`
 	Balance int64 `json:"balance"`

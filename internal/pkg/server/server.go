@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
 )
 
@@ -34,17 +35,20 @@ func (s *Server) checkConnection() error {
 	s.logger.Info("Success check connection to sql db")
 	return nil
 }
+
 func (s *Server) Start() error {
 	if err := s.checkConnection(); err != nil {
 		return err
 	}
 
 	router := mux.NewRouter()
+	routerApi := router.PathPrefix("/api/v1/").Subrouter()
+	routerApi.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	balanceRepository := balance_repository.NewBalanceRepository(s.connections.SqlConnection)
 	balanceUsecase := balance_usecase.NewBalanceUsecase(balanceRepository)
 
-	h := balance_handler.NewBalanceHandler(router, s.logger, balanceUsecase)
+	h := balance_handler.NewBalanceHandler(routerApi, s.logger, balanceUsecase)
 	s.logger.Info("Server start")
 	return http.ListenAndServe(s.config.BindAddr, h)
 }

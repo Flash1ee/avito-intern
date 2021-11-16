@@ -13,13 +13,13 @@ import (
 	"strconv"
 )
 
-type RespondError struct {
+type ResponseError struct {
 	Code  int
 	Error error
 	Level logrus.Level
 }
 
-type CodeMap map[error]RespondError
+type CodeMap map[error]ResponseError
 
 type RequestBody interface{}
 
@@ -34,7 +34,7 @@ func (h *HelpHandlers) UsecaseError(w http.ResponseWriter, r *http.Request, usec
 		usecaseErr = errors.Cause(usecaseErr).(*app.GeneralError).Err
 	}
 
-	respond := RespondError{http.StatusServiceUnavailable,
+	respond := ResponseError{http.StatusServiceUnavailable,
 		app.UnknownError, logrus.ErrorLevel}
 
 	for err, respondErr := range codeByErr {

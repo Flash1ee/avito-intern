@@ -11,12 +11,12 @@ type Usecase interface {
 	UpdateBalance(userID int64, amount int64, updateType int) (int64, error)
 
 	// GetBalance Errors:
-	//		NotFound
+	//		balance_repository.NotFound
 	// 		app.GeneralError with Errors
-	// 			DefaultErrDB
+	// 			balance_repository.DefaultErrDB
 	GetBalance(userID int64) (int64, error)
 	// TransferMoney Errors:
-	//		NotEnoughMoney
+	//		balance_usecase.NotEnoughMoney
 	//		balance_repository.NotFound
 	// 		app.GeneralError with Errors
 	// 			balance_repository.DefaultErrDB
