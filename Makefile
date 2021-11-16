@@ -31,3 +31,11 @@ rm-docker:
 run:
 	mkdir -p $(LOG_DIR)
 	docker-compose up --build --no-deps
+
+cover-html:
+	go test ./... -coverprofile cover.out
+	go tool cover -html=cover.out -o cover.html
+
+clean:
+	rm -rf cover.html cover cover2 *.out
+
