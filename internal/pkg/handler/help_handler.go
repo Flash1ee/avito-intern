@@ -48,7 +48,7 @@ func (h *HelpHandlers) UsecaseError(w http.ResponseWriter, r *http.Request, usec
 }
 
 // GetInt64FromParam HTTPErrors
-//		Status 400 handler_errors.InvalidParameters
+//		Status 400 handler.InvalidParameters
 func (h *HelpHandlers) GetInt64FromParam(w http.ResponseWriter, r *http.Request, name string) (int64, bool) {
 	vars := mux.Vars(r)
 	number, ok := vars[name]

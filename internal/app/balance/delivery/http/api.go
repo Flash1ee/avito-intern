@@ -12,7 +12,7 @@ var CodeByErrorGetBalance = handler.CodeMap{
 	balance_repository.NotFound:     {http.StatusNotFound, handler.UserNotFound, logrus.WarnLevel},
 	balance_repository.DefaultErrDB: {http.StatusInternalServerError, handler.BDError, logrus.ErrorLevel},
 }
-var CodeByErrorBalanceHandler = handler.CodeMap{
+var CodeByErrorUpdateBalanceHandler = handler.CodeMap{
 	balance_repository.NotFound:     {http.StatusNotFound, handler.UserNotFound, logrus.WarnLevel},
 	balance_repository.DefaultErrDB: {http.StatusInternalServerError, handler.BDError, logrus.ErrorLevel},
 	balance_usecase.NotEnoughMoney:  {http.StatusUnprocessableEntity, handler.NotEnoughMoney, logrus.ErrorLevel},

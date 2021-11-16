@@ -1,6 +1,7 @@
 package testing
 
 import (
+	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/balance/models"
 	"testing"
 )
@@ -19,5 +20,12 @@ func TestTransaction(t *testing.T) *models.TransferMoney {
 		SenderBalance:   10.2,
 		ReceiverID:      2,
 		ReceiverBalance: 5,
+	}
+}
+func TestUpdateBalance(t *testing.T) *request_response_models.RequestUpdateBalance {
+	t.Helper()
+	return &request_response_models.RequestUpdateBalance{
+		Type:   models.ADD_BALANCE,
+		Amount: 100.2,
 	}
 }

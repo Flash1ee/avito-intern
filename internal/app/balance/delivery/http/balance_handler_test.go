@@ -3,10 +3,10 @@ package balance_handler
 import (
 	"avito-intern/internal/app"
 	"avito-intern/internal/app/balance/balance_repository"
-	test_data "avito-intern/internal/app/balance/balance_repository/testing"
 	"avito-intern/internal/app/balance/balance_usecase"
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/balance/models"
+	test_data "avito-intern/internal/app/balance/testing"
 	"avito-intern/internal/pkg/handler"
 	"bytes"
 	"encoding/json"
@@ -197,7 +197,7 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_UserNot
 	decoder := json.NewDecoder(recorder.Body)
 	err = decoder.Decode(responseRes)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), responseRes.Err, handler.UserNotFound.Error())
+	assert.Equal(s.T(), handler.UserNotFound.Error(), responseRes.Err)
 }
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_InternalError() {
 	req := request_response_models.RequestTransfer{
@@ -229,7 +229,7 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_Interna
 	decoder := json.NewDecoder(recorder.Body)
 	err = decoder.Decode(responseRes)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), responseRes.Err, handler.BDError.Error())
+	assert.Equal(s.T(), handler.BDError.Error(), responseRes.Err)
 }
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_SenderNoHaveMoney() {
 	req := request_response_models.RequestTransfer{
@@ -261,7 +261,7 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_SenderN
 	decoder := json.NewDecoder(recorder.Body)
 	err = decoder.Decode(responseRes)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), responseRes.Err, handler.NotEnoughMoney.Error())
+	assert.Equal(s.T(), handler.NotEnoughMoney.Error(), responseRes.Err)
 }
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_InvalidBody() {
 	req := request_response_models.RequestTransfer{
@@ -289,7 +289,7 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_Invalid
 	decoder := json.NewDecoder(recorder.Body)
 	err = decoder.Decode(responseRes)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), responseRes.Err, handler.InvalidBody.Error())
+	assert.Equal(s.T(), handler.InvalidBody.Error(), responseRes.Err)
 }
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_InvalidBodyData() {
 	req := models.Balance{}
@@ -312,10 +312,218 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetTransferMoneyHandler_Invalid
 	responseRes := &request_response_models.ErrResponse{}
 	decoder := json.NewDecoder(recorder.Body)
 	err = decoder.Decode(responseRes)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), responseRes.Err, handler.InvalidBody.Error())
-}
 
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.InvalidBody.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_OK() {
+	req := test_data.TestUpdateBalance(s.T())
+	expBalance := req.Amount * 2
+	tb := &TestTable{
+		Name:              "Update balance OK",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusOK,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	s.MockBalanceUsecase.EXPECT().
+		UpdateBalance(userID, req.Amount, int(req.Type)).
+		Return(expBalance, nil)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ResponseBalance{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), expBalance, responseRes.Balance)
+	assert.Equal(s.T(), userID, responseRes.UserID)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_InvalidBody() {
+	req := models.Balance{}
+	tb := &TestTable{
+		Name:              "Invalid type of body",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusUnprocessableEntity,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.InvalidBody.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_InvalidBodyData() {
+	req := test_data.TestUpdateBalance(s.T())
+	req.Type = -1
+	tb := &TestTable{
+		Name:              "Invalid data in body",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusUnprocessableEntity,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.InvalidBody.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_InvalidParam() {
+	req := test_data.TestUpdateBalance(s.T())
+	tb := &TestTable{
+		Name:              "Invalid query param in url",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusBadRequest,
+	}
+	recorder := httptest.NewRecorder()
+	path := "/balance/f"
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.InvalidParameters.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_InternalError() {
+	req := test_data.TestUpdateBalance(s.T())
+	tb := &TestTable{
+		Name:              "Database error",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusInternalServerError,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	s.MockBalanceUsecase.EXPECT().
+		UpdateBalance(userID, req.Amount, int(req.Type)).
+		Return(app.InvalidFloat, balance_repository.NewDBError(balance_repository.DefaultErrDB))
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.BDError.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_UserNotFound() {
+	req := test_data.TestUpdateBalance(s.T())
+	req.Type = models.DIFF_BALANCE
+	tb := &TestTable{
+		Name:              "User account not found and operation diff balance",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusNotFound,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	s.MockBalanceUsecase.EXPECT().
+		UpdateBalance(userID, req.Amount, int(req.Type)).
+		Return(app.InvalidFloat, balance_repository.NotFound)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.UserNotFound.Error(), responseRes.Err)
+}
+func (s *SuiteBalanceHandler) TestBalanceHandler_UpdateBalanceHandler_UserNotHaveMoney() {
+	req := test_data.TestUpdateBalance(s.T())
+	req.Type = models.DIFF_BALANCE
+	tb := &TestTable{
+		Name:              "the user has less money on the account than he wants to write off",
+		Data:              req,
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusUnprocessableEntity,
+	}
+	recorder := httptest.NewRecorder()
+	userID := int64(1)
+	toStr := strconv.Itoa(int(userID))
+	path := "/balance/" + toStr
+	b := bytes.Buffer{}
+	err := json.NewEncoder(&b).Encode(tb.Data)
+	assert.NoError(s.T(), err)
+
+	s.MockBalanceUsecase.EXPECT().
+		UpdateBalance(userID, req.Amount, int(req.Type)).
+		Return(app.InvalidFloat, balance_usecase.NotEnoughMoney)
+
+	reader, _ := http.NewRequest(http.MethodPost, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+	responseRes := &request_response_models.ErrResponse{}
+	decoder := json.NewDecoder(recorder.Body)
+	err = decoder.Decode(responseRes)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), handler.NotEnoughMoney.Error(), responseRes.Err)
+}
 func TestBalanceHandler(t *testing.T) {
 	suite.Run(t, new(SuiteBalanceHandler))
 }

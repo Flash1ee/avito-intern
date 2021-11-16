@@ -2,7 +2,7 @@ package balance_repository
 
 import (
 	"avito-intern/internal/app"
-	test_data "avito-intern/internal/app/balance/balance_repository/testing"
+	test_data "avito-intern/internal/app/balance/testing"
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

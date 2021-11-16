@@ -134,7 +134,7 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	}
 	newBalance, err := h.usecase.UpdateBalance(userID, req.Amount, int(req.Type))
 	if err != nil {
-		h.UsecaseError(w, r, err, CodeByErrorBalanceHandler)
+		h.UsecaseError(w, r, err, CodeByErrorUpdateBalanceHandler)
 		return
 	}
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{UserID: userID, Balance: newBalance})
