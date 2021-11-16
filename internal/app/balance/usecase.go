@@ -2,7 +2,7 @@ package balance
 
 import "avito-intern/internal/app/balance/models"
 
-//go:generate mockgen -destination=mocks/usecase.go -package=mock_balance -mock_names=Usecase=Usecase . Usecase
+//go:generate mockgen -destination=mocks/usecase.go -package=mock_balance -mock_names=Usecase=BalanceUsecase . Usecase
 
 type Usecase interface {
 	// UpdateBalance Errors:

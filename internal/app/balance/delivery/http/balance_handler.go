@@ -2,7 +2,6 @@ package balance_handler
 
 import (
 	"avito-intern/internal/app/balance"
-	"avito-intern/internal/app/balance/delivery"
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/middlewares"
 	"avito-intern/internal/pkg/handler"
@@ -60,7 +59,7 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 	}
 	amount, err := h.usecase.GetBalance(userID)
 	if err != nil {
-		h.UsecaseError(w, r, err, balance.CodeByErrorGetBalance)
+		h.UsecaseError(w, r, err, CodeByErrorGetBalance)
 		return
 	}
 
@@ -84,17 +83,17 @@ func (h *BalanceHandler) TransferMoneyHandler(w http.ResponseWriter, r *http.Req
 	err := h.GetRequestBody(w, r, req)
 	if err != nil {
 		h.Log(r).Warnf("can not decode body %s", err)
-		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		h.Error(w, r, http.StatusUnprocessableEntity, handler.InvalidBody)
 		return
 	}
 	if err = req.Validate(); err != nil {
 		h.Log(r).Warnf("invalid RequestTransferMoney body err: %v body: %v", err, req)
-		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		h.Error(w, r, http.StatusUnprocessableEntity, handler.InvalidBody)
 		return
 	}
 	res, err := h.usecase.TransferMoney(req.SenderID, req.ReceiverID, req.Amount)
 	if err != nil {
-		h.UsecaseError(w, r, err, balance.CodeByErrorTransferHandler)
+		h.UsecaseError(w, r, err, CodeByErrorTransferHandler)
 		return
 	}
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseTransfer{
@@ -121,12 +120,12 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	err := h.GetRequestBody(w, r, req)
 	if err != nil {
 		h.Log(r).Warnf("can not decode body %s", err)
-		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		h.Error(w, r, http.StatusUnprocessableEntity, handler.InvalidBody)
 		return
 	}
 	if err = req.Validate(); err != nil {
 		h.Log(r).Warnf("invalid RequestUpdateBalance body err: %v body: %v", err, req)
-		h.Error(w, r, http.StatusUnprocessableEntity, delivery.InvalidBody)
+		h.Error(w, r, http.StatusUnprocessableEntity, handler.InvalidBody)
 		return
 	}
 	userID, ok := h.GetInt64FromParam(w, r, "user_id")
@@ -135,7 +134,7 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	}
 	newBalance, err := h.usecase.UpdateBalance(userID, req.Amount, int(req.Type))
 	if err != nil {
-		h.UsecaseError(w, r, err, balance.CodeByErrorBalanceHandler)
+		h.UsecaseError(w, r, err, CodeByErrorBalanceHandler)
 		return
 	}
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{UserID: userID, Balance: newBalance})

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"avito-intern/internal/app"
-	"avito-intern/internal/app/balance/delivery"
 	"avito-intern/internal/pkg/utilits"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -56,13 +55,13 @@ func (h *HelpHandlers) GetInt64FromParam(w http.ResponseWriter, r *http.Request,
 	numberInt, err := strconv.ParseInt(number, 10, 64)
 	if !ok || err != nil {
 		h.Log(r).Infof("can'not get parametrs %s, was got %v)", name, vars)
-		h.Error(w, r, http.StatusBadRequest, delivery.InvalidParameters)
+		h.Error(w, r, http.StatusBadRequest, InvalidParameters)
 		return app.InvalidInt, false
 	}
 	return numberInt, true
 }
 
-func (h *HelpHandlers) GetRequestBody(w http.ResponseWriter, r *http.Request,
+func (h *HelpHandlers) GetRequestBody(_ http.ResponseWriter, r *http.Request,
 	reqStruct RequestBody) error {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()

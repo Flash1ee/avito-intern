@@ -34,24 +34,6 @@ func (repo *BalanceRepository) FindUserByID(userID int64) (*models.Balance, erro
 	return balance, nil
 }
 
-//// GetBalance Errors:
-////		NotFound
-//// 		app.GeneralError with Errors
-//// 			DefaultErrDB
-//func (repo *BalanceRepository) GetBalance(userID int64) (int64, error) {
-//	query := "SELECT amount from balance where user_id = $1"
-//
-//	var resBalance int64
-//	err := repo.conn.QueryRow(query, userID).Scan(&resBalance)
-//	if err != nil {
-//		if errors.Is(err, sql.ErrNoRows) {
-//			return app.InvalidFloat, NotFound
-//		}
-//		return app.InvalidFloat, NewDBError(err)
-//	}
-//	return resBalance, nil
-//}
-
 // CreateTransfer Errors:
 // 		app.GeneralError with Errors
 // 			DefaultErrDB

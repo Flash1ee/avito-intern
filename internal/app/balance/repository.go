@@ -2,14 +2,14 @@ package balance
 
 import "avito-intern/internal/app/balance/models"
 
-//go:generate mockgen -destination=mocks/repository.go -package=mock_balance -mock_names=Repository=Repository . Repository
+//go:generate mockgen -destination=mocks/repository.go -package=mock_balance -mock_names=Repository=BalanceRepository . Repository
 
 type Repository interface {
 	// FindUserByID Errors:
 	//		balance_repository.NotFound
 	// 		app.GeneralError with Errors
 	// 			balance_repository.DefaultErrDB
-	FindUserByID(userID int64) (models.Balance, error)
+	FindUserByID(userID int64) (*models.Balance, error)
 	// CreateTransfer Errors:
 	// 		app.GeneralError with Errors
 	// 			balance_repository.DefaultErrDB

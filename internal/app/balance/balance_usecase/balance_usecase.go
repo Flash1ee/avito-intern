@@ -2,15 +2,16 @@ package balance_usecase
 
 import (
 	"avito-intern/internal/app"
+	"avito-intern/internal/app/balance"
 	"avito-intern/internal/app/balance/balance_repository"
 	"avito-intern/internal/app/balance/models"
 )
 
 type BalanceUsecase struct {
-	repo *balance_repository.BalanceRepository
+	repo balance.Repository
 }
 
-func NewBalanceUsecase(repo *balance_repository.BalanceRepository) *BalanceUsecase {
+func NewBalanceUsecase(repo balance.Repository) *BalanceUsecase {
 	return &BalanceUsecase{
 		repo: repo,
 	}
@@ -34,20 +35,20 @@ func (uc *BalanceUsecase) GetBalance(userID int64) (float64, error) {
 // 		app.GeneralError with Errors
 // 			balance_repository.DefaultErrDB
 func (uc *BalanceUsecase) UpdateBalance(userID int64, amount float64, updateType int) (float64, error) {
-	balance, err := uc.repo.FindUserByID(userID)
+	b, err := uc.repo.FindUserByID(userID)
 	if err != nil {
 		if err != balance_repository.NotFound || updateType != models.ADD_BALANCE {
 			return app.InvalidFloat, err
 		}
 	}
-	if balance == nil {
+	if b == nil {
 		err = uc.repo.CreateAccount(userID)
 		if err != nil {
 			return app.InvalidFloat, err
 		}
 	}
 	if updateType == models.DIFF_BALANCE {
-		if balance.Amount < amount {
+		if b.Amount < amount {
 			return app.InvalidFloat, NotEnoughMoney
 		}
 		amount *= -1

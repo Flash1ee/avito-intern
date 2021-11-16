@@ -1,4 +1,4 @@
-package balance
+package balance_handler
 
 import (
 	"avito-intern/internal/app/balance/balance_repository"
