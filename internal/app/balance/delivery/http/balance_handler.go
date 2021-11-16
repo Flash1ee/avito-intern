@@ -13,13 +13,15 @@ import (
 )
 
 type BalanceHandler struct {
-	router  *mux.Router
-	logger  *logrus.Logger
-	usecase balance.Usecase
+	router          *mux.Router
+	logger          *logrus.Logger
+	usecase         balance.Usecase
+	exchangeService exchange.Interface
 	handler.HelpHandlers
 }
 
-func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Usecase) *BalanceHandler {
+func NewBalanceHandler(router *mux.Router, logger *logrus.Logger,
+	uc balance.Usecase, exchangeApi string) *BalanceHandler {
 	h := &BalanceHandler{
 		router:  router,
 		logger:  logger,
@@ -29,12 +31,12 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 				LogObject: utilits.NewLogObject(logger),
 			},
 		},
+		exchangeService: exchange.NewExchangeService(exchangeApi),
 	}
 
 	h.router.HandleFunc("/balance/{user_id}", h.GetBalanceHandler).Methods(http.MethodGet)
 	h.router.HandleFunc("/balance/{user_id}", h.UpdateBalanceHandler).Methods(http.MethodPost)
 	h.router.HandleFunc("/transfer", h.TransferMoneyHandler).Methods(http.MethodPost)
-	//h.router.HandleFunc("/transaction", h.TransactionHandler).Methods(http.MethodPost)
 
 	utilitiesMiddleware := middlewares.NewUtilitiesMiddleware(h.logger)
 	h.router.Use(utilitiesMiddleware.UpgradeLogger)
@@ -47,8 +49,7 @@ func NewBalanceHandler(router *mux.Router, logger *logrus.Logger, uc balance.Use
 // @Summary get user balance
 // @Produce json
 // @Param user_id path int true "user_id in balanceApp"
-// @Param currency query string true "currency to convert"
-
+// @Param currency query string false "currency to convert"
 // @Success 200 {object} models.ResponseBalance
 // @Failure 400 {object} models.ErrResponse "invalid query param"
 // @Failure 404 {object} models.ErrResponse "user with this id not found"
@@ -67,7 +68,7 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 	}
 	valute := r.URL.Query().Get("currency")
 	if valute != "" {
-		exchangeBalance, err := exchange.Exchange(amount, valute)
+		exchangeBalance, err := h.exchangeService.Exchange(amount, valute)
 		if err != nil {
 			h.Log(r).Warn(err)
 			h.Error(w, r, http.StatusBadRequest, err)
@@ -87,6 +88,7 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 // @Description money transfer between users
 // @Accept json
 // @Produce json
+// @Param data body models.RequestTransfer true "body for transfer money"
 // @Success 200 {object} models.ResponseTransfer "Successfully transaction"
 // @Failure 404 {object} models.ErrResponse "user with one of id in request body not found"
 // @Failure 422 {object} models.ErrResponse "invalid body in request || not enough money for transfer"

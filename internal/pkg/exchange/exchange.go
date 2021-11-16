@@ -8,11 +8,21 @@ import (
 	"net/http"
 )
 
+type ExchangeService struct {
+	Api string
+}
+
+func NewExchangeService(apiUrl string) *ExchangeService {
+	return &ExchangeService{
+		Api: apiUrl,
+	}
+}
+
 // Exchange Errors:
 //		NotSupportedCurrency
 // 		app.GeneralError with Errors
 // 			InternalError
-func Exchange(amount float64, currency string) (float64, error) {
+func (ex *ExchangeService) Exchange(amount float64, currency string) (float64, error) {
 	if amount == 0 {
 		return amount, nil
 	}
@@ -21,7 +31,7 @@ func Exchange(amount float64, currency string) (float64, error) {
 		return app.InvalidFloat, NotSupportedCurrency
 	}
 
-	req, err := http.NewRequest("GET", cbrQuery, nil)
+	req, err := http.NewRequest("GET", ex.Api, nil)
 	if err != nil {
 		return app.InvalidFloat, app.GeneralError{
 			Err:         InternalError,

@@ -26,7 +26,7 @@ type SuiteBalanceHandler struct {
 
 func (s *SuiteBalanceHandler) SetupSuite() {
 	s.SuiteHandler.SetupSuite()
-	s.handler = NewBalanceHandler(mux.NewRouter(), s.Logger, s.MockBalanceUsecase)
+	s.handler = NewBalanceHandler(mux.NewRouter(), s.Logger, s.MockBalanceUsecase, "")
 }
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetBalanceHandler_OK() {
 	tb := &TestTable{

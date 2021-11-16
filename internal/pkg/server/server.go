@@ -48,7 +48,7 @@ func (s *Server) Start() error {
 	balanceRepository := balance_repository.NewBalanceRepository(s.connections.SqlConnection)
 	balanceUsecase := balance_usecase.NewBalanceUsecase(balanceRepository)
 
-	h := balance_handler.NewBalanceHandler(routerApi, s.logger, balanceUsecase)
+	h := balance_handler.NewBalanceHandler(routerApi, s.logger, balanceUsecase, s.config.CurrencyAPI)
 	s.logger.Info("Server start")
 	return http.ListenAndServe(s.config.BindAddr, h)
 }
