@@ -34,28 +34,28 @@ func (repo *BalanceRepository) FindUserByID(userID int64) (*models.Balance, erro
 	return balance, nil
 }
 
-// GetBalance Errors:
-//		NotFound
-// 		app.GeneralError with Errors
-// 			DefaultErrDB
-func (repo *BalanceRepository) GetBalance(userID int64) (int64, error) {
-	query := "SELECT amount from balance where user_id = $1"
-
-	var resBalance int64
-	err := repo.conn.QueryRow(query, userID).Scan(&resBalance)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return app.InvalidInt, NotFound
-		}
-		return app.InvalidInt, NewDBError(err)
-	}
-	return resBalance, nil
-}
+//// GetBalance Errors:
+////		NotFound
+//// 		app.GeneralError with Errors
+//// 			DefaultErrDB
+//func (repo *BalanceRepository) GetBalance(userID int64) (int64, error) {
+//	query := "SELECT amount from balance where user_id = $1"
+//
+//	var resBalance int64
+//	err := repo.conn.QueryRow(query, userID).Scan(&resBalance)
+//	if err != nil {
+//		if errors.Is(err, sql.ErrNoRows) {
+//			return app.InvalidFloat, NotFound
+//		}
+//		return app.InvalidFloat, NewDBError(err)
+//	}
+//	return resBalance, nil
+//}
 
 // CreateTransfer Errors:
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
-func (repo *BalanceRepository) CreateTransfer(from int64, to int64, amount int64) error {
+func (repo *BalanceRepository) CreateTransfer(from int64, to int64, amount float64) error {
 	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
 	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
 	queryAddTransaction := "INSERT INTO transactions(from_id, to_id, amount) VALUES($1, $2, $3)"
@@ -91,9 +91,9 @@ func (repo *BalanceRepository) CreateTransfer(from int64, to int64, amount int64
 func (repo *BalanceRepository) CreateAccount(userID int64) error {
 	query := "INSERT INTO balance(user_id) VALUES($1)"
 
-	res := repo.conn.QueryRow(query, userID)
-	if res.Err() != nil {
-		return NewDBError(res.Err())
+	_, err := repo.conn.Exec(query, userID)
+	if err != nil {
+		return NewDBError(err)
 	}
 	return nil
 }
@@ -101,13 +101,13 @@ func (repo *BalanceRepository) CreateAccount(userID int64) error {
 // AddBalance Errors:
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
-func (repo *BalanceRepository) AddBalance(userID int64, amount int64) (int64, error) {
+func (repo *BalanceRepository) AddBalance(userID int64, amount float64) (float64, error) {
 	query := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2 RETURNING amount"
 
-	var balance int64
+	var balance float64
 	err := repo.conn.QueryRow(query, amount, userID).Scan(&balance)
 	if err != nil {
-		return app.InvalidInt, NewDBError(err)
+		return app.InvalidFloat, NewDBError(err)
 	}
 	return balance, nil
 }
