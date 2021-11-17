@@ -17,9 +17,8 @@ build: generate-api
 	go build -o server.out -v ./cmd/server
 
 generate-api:
-	go get -u github.com/swaggo/swag/cmd/swag@v1.6.7
-	go mod tidy
-	swag init -g cmd/server/main.go -o docs
+	go install github.com/swaggo/swag/cmd/swag@v1.6.5
+	swag init -g ./cmd/server/main.go -o docs
 
 build-docker:
 	docker build --no-cache --network host -f ./docker/Dockerfile . --tag balance-app

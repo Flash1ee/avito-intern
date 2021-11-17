@@ -1,7 +1,4 @@
 \c balance_db
-drop table balance cascade;
-drop table transactions;
-
 create type transaction_type as
     enum ('write-off', 'refill', 'transfer');
 
