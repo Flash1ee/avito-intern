@@ -58,7 +58,20 @@ PostgreSQL поднимается на 5432 порту, он тоже долже
 ```bash
 docker-compose up
 ```
+### Команды запуска утилит
 
+Для запуска тестов с покрытием:
+```bash
+make run-coverage
+```
+Для создание html странички с покрытием кода тестами:
+```bash
+make cover-html
+```
+Для генерации `API Swagger`
+```bash
+make generate-api
+```
 ## API
 
 По умолчанию валюта кошелька - рубль.

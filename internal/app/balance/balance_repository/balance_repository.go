@@ -99,9 +99,11 @@ func (repo *BalanceRepository) CreateAccount(userID int64) error {
 // 			DefaultErrDB
 func (repo *BalanceRepository) AddBalance(userID int64, amount float64) (float64, error) {
 	var description string
+	operation := transaction_models.TextTransactionToType[transaction_models.REFILL]
 	if amount < 0 {
 		description = fmt.Sprintf(
 			addBalanceDescriptions, userID, transaction_models.TextTransactionToType[transaction_models.WRITE_OFF])
+		operation = transaction_models.TextTransactionToType[transaction_models.WRITE_OFF]
 	} else {
 		description = fmt.Sprintf(
 			addBalanceDescriptions, userID, transaction_models.TextTransactionToType[transaction_models.REFILL])
@@ -113,7 +115,7 @@ func (repo *BalanceRepository) AddBalance(userID int64, amount float64) (float64
 		return app.InvalidFloat, NewDBError(err)
 	}
 
-	_, err = repo.conn.Exec(queryAddTransaction, transaction_models.TextTransactionToType[transaction_models.REFILL], userID, userID, amount, description)
+	_, err = repo.conn.Exec(queryAddTransaction, operation, userID, userID, amount, description)
 	if err != nil {
 		return app.InvalidFloat, NewDBError(err)
 	}

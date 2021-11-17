@@ -92,6 +92,28 @@ func (s *SuiteBalanceRepository) TestAddBalance_ERROR_DB() {
 	assert.Equal(s.T(), NewDBError(expErr), err)
 	assert.Equal(s.T(), app.InvalidFloat, res)
 }
+func (s *SuiteBalanceRepository) TestAddBalance_WriteTransactionError() {
+	testB := test_data.TestBalance(s.T())
+	operationType := transaction_models.TextTransactionToType[transaction_models.REFILL]
+
+	testDecr := test_data.TestAddBalanceDescription(testB.ID, operationType, s.T())
+
+	expRes := testB.Amount * 2
+	sqlErr := sql.ErrTxDone
+	expErr := NewDBError(sqlErr)
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryAddBalance)).
+		WithArgs(testB.Amount, testB.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"amount"}).
+			AddRow(expRes))
+
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
+		WithArgs(operationType, testB.ID, testB.ID, testB.Amount, testDecr).
+		WillReturnResult(sqlmock.NewResult(1, 1)).WillReturnError(sqlErr)
+
+	res, err := s.repo.AddBalance(testB.ID, testB.Amount)
+	assert.Equal(s.T(), expErr, err)
+	assert.Equal(s.T(), app.InvalidFloat, res)
+}
 func (s *SuiteBalanceRepository) TestAddBalance_OK() {
 	testB := test_data.TestBalance(s.T())
 	operationType := transaction_models.TextTransactionToType[transaction_models.REFILL]
@@ -110,6 +132,28 @@ func (s *SuiteBalanceRepository) TestAddBalance_OK() {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	res, err := s.repo.AddBalance(testB.ID, testB.Amount)
+	assert.Nil(s.T(), err)
+	assert.Equal(s.T(), expRes, res)
+}
+func (s *SuiteBalanceRepository) TestAddBalance_OK_WriteOff() {
+	testB := test_data.TestBalance(s.T())
+	operationType := transaction_models.TextTransactionToType[transaction_models.WRITE_OFF]
+
+	testDecr := test_data.TestAddBalanceDescription(testB.ID, operationType, s.T())
+
+	expRes := testB.Amount / 2
+	writeOffMoney := (testB.Amount / 2) * -1
+
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryAddBalance)).
+		WithArgs(writeOffMoney, testB.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"amount"}).
+			AddRow(expRes))
+
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
+		WithArgs(operationType, testB.ID, testB.ID, writeOffMoney, testDecr).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	res, err := s.repo.AddBalance(testB.ID, writeOffMoney)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), expRes, res)
 }
