@@ -8,4 +8,4 @@ EXPOSE 8080
 
 RUN make build
 
-CMD ./server.out
+CMD  ./wait && ./server.out
