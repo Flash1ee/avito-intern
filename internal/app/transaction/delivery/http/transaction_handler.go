@@ -114,6 +114,7 @@ func (h *TransactionHandler) GetTransactionHandler(w http.ResponseWriter, r *htt
 	if paginator.SortField == models.NO_ORDER &&
 		paginator.SortDirection != models.NO_DIRECTION {
 		h.Error(w, r, http.StatusBadRequest, DirectionMustUsageWithSort)
+		return
 
 	}
 

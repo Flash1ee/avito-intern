@@ -39,4 +39,6 @@ cover-html:
 
 clean:
 	rm -rf cover.html cover cover2 *.out
+clean-logs:
+	rm -rf ./logs/*.log
 
