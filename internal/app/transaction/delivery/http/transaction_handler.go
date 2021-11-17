@@ -54,7 +54,6 @@ func NewTransactionHandler(router *mux.Router, logger *logrus.Logger,
 // @Success 200 {object} models.ResponseTransactions
 // @Success 204 {object} models.NotFoundResponse "user transactions not found"
 // @Failure 400 {object} models.ErrResponse "invalid query param | usage direction without sort"
-// @Failure 422 {object} models.ErrResponse "Not supported currency | convert currency error"
 // @Failure 500 {object} models.ErrResponse "internal error"
 // @Router /transaction/{:user_id} [GET]
 func (h *TransactionHandler) GetTransactionHandler(w http.ResponseWriter, r *http.Request) {

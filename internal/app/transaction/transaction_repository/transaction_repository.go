@@ -44,7 +44,7 @@ func (repo *TransactionRepository) GetTransactions(userID int64, paginator *mode
 		querySelect += fmt.Sprintf(defineQueryOrder, models.TransactionQueryParams[paginator.SortField],
 			models.TransactionQueryParams[paginator.SortDirection])
 	}
-	querySelect += fmt.Sprintf(defineQueryPagination, paginator.Count, paginator.Page-1)
+	querySelect += fmt.Sprintf(defineQueryPagination, paginator.Count, paginator.Count*(paginator.Page-1))
 
 	rows, err := repo.conn.Query(querySelect, userID)
 	if err != nil {

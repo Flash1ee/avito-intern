@@ -21,11 +21,11 @@ var TransactionQueryParams = map[int]string{
 }
 
 type Transaction struct {
-	UserID      int64     `json:"id"`
+	UserID      int64     `json:"sender_id"`
 	ReceiverID  int64     `json:"receiver_id,omitempty"`
 	Type        string    `json:"type"`
 	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
+	CreatedAt   time.Time `json:"created_at" swaggertype:"integer"`
 	Amount      float64   `json:"amount"`
 }
 

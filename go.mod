@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
@@ -14,7 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/swaggo/http-swagger v1.1.2
-	github.com/swaggo/swag v1.7.4
+	github.com/swaggo/swag v1.7.0
 )
 
 require (

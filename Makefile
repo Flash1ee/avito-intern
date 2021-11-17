@@ -17,7 +17,8 @@ build: generate-api
 	go build -o server.out -v ./cmd/server
 
 generate-api:
-	go get -u github.com/swaggo/swag/cmd/swag
+	go get -u github.com/swaggo/swag/cmd/swag@v1.6.7
+	go mod tidy
 	swag init -g cmd/server/main.go -o docs
 
 build-docker:
