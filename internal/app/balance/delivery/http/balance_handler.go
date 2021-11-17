@@ -66,9 +66,9 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 		h.UsecaseError(w, r, err, CodeByErrorGetBalance)
 		return
 	}
-	valute := r.URL.Query().Get("currency")
-	if valute != "" {
-		exchangeBalance, err := h.exchangeService.Exchange(amount, valute)
+	currency := r.URL.Query().Get("currency")
+	if currency != "" {
+		exchangeBalance, err := h.exchangeService.Exchange(amount, currency)
 		if err != nil {
 			h.Log(r).Warn(err)
 			h.Error(w, r, http.StatusBadRequest, err)
@@ -155,7 +155,6 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	}
 	h.Respond(w, r, http.StatusOK, request_response_models.ResponseBalance{UserID: userID, Balance: newBalance})
 }
-
 func (h *BalanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.router.ServeHTTP(w, r)
 }

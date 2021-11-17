@@ -1,4 +1,7 @@
 \c balance_db
+create type transaction_type as
+    enum('write-off', 'refill', 'transfer');
+
 CREATE TABLE IF NOT EXISTS balance
 (
     user_id bigserial not null primary key,
@@ -8,7 +11,10 @@ CREATE TABLE IF NOT EXISTS balance
 CREATE TABLE IF NOT EXISTS transactions
 (
     id bigserial not null primary key,
+    type transaction_type not null,
     from_id bigint references balance(user_id),
     to_id bigint references balance(user_id),
-    amount numeric not null
+    amount numeric not null,
+    created_at timestamp not null default now(),
+    description text not null
 )
