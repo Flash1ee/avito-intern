@@ -34,15 +34,6 @@ func (req *RequestTransfer) Validate() error {
 		validation.Field(&req.Amount, validation.By(validFloatFunc)))
 }
 
-type RequestBalance struct {
-	UserID int64 `json:"id"`
-}
-
-func (req *RequestBalance) Validate() error {
-	return validation.ValidateStruct(req,
-		validation.Field(&req.UserID, validation.By(validIntFunc)))
-}
-
 type RequestUpdateBalance struct {
 	Type   int64   `json:"operation"`
 	Amount float64 `json:"amount"`

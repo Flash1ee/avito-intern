@@ -3,6 +3,7 @@ package testing
 import (
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/balance/models"
+	transaction_models "avito-intern/internal/app/transaction/models"
 	"fmt"
 	"testing"
 )
@@ -37,4 +38,13 @@ func TestAddBalanceDescription(id int64, operation string, t *testing.T) string 
 func TestTransferDescription(senderID int64, receiverID int64, t *testing.T) string {
 	t.Helper()
 	return fmt.Sprintf("user <id = %d> send money to user <id = %d>", senderID, receiverID)
+}
+func TestPaginator(t *testing.T) *transaction_models.Paginator {
+	t.Helper()
+	return &transaction_models.Paginator{
+		Page:          1,
+		Count:         5,
+		SortDirection: transaction_models.NO_DIRECTION,
+		SortField:     transaction_models.NO_ORDER,
+	}
 }

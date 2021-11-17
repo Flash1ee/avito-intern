@@ -11,6 +11,13 @@ type TransactionRepository struct {
 	conn *sql.DB
 }
 
+const (
+	queryCountTransactions  = "SELECT count(*) as cnt FROM transactions where sender_id = $1"
+	querySelectTransactions = "SELECT type, sender_id, receiver_id, amount, created_at, description FROM transactions where sender_id = $1 "
+	defineQueryOrder        = "ORDER BY %s %s "
+	defineQueryPagination   = "LIMIT %d OFFSET %d"
+)
+
 func NewTransactionRepository(conn *sql.DB) *TransactionRepository {
 	return &TransactionRepository{
 		conn: conn,
@@ -24,25 +31,20 @@ func NewTransactionRepository(conn *sql.DB) *TransactionRepository {
 func (repo *TransactionRepository) GetTransactions(userID int64, paginator *models.Paginator) (
 	[]models.Transaction, error) {
 
-	queryCount := "SELECT count(*) FROM transactions where sender_id = $1"
-	querySelect := "SELECT type, sender_id, receiver_id, amount, created_at, description FROM transactions where sender_id = $1 "
-
-	defineOrder := "ORDER BY %s %s "
-	queryPagination := "LIMIT %d OFFSET %d"
-
 	count := 0
-	if err := repo.conn.QueryRow(queryCount, userID).Scan(&count); err != nil {
+	if err := repo.conn.QueryRow(queryCountTransactions, userID).Scan(&count); err != nil {
 		return nil, NewDBError(err)
 	}
 	if count == 0 {
 		return nil, NotFound
 	}
 
+	querySelect := querySelectTransactions
 	if paginator.SortField != models.NO_ORDER {
-		querySelect += fmt.Sprintf(defineOrder, models.TransactionQueryParams[paginator.SortField],
+		querySelect += fmt.Sprintf(defineQueryOrder, models.TransactionQueryParams[paginator.SortField],
 			models.TransactionQueryParams[paginator.SortDirection])
 	}
-	querySelect += fmt.Sprintf(queryPagination, paginator.Count, paginator.Page-1)
+	querySelect += fmt.Sprintf(defineQueryPagination, paginator.Count, paginator.Page-1)
 
 	rows, err := repo.conn.Query(querySelect, userID)
 	if err != nil {
