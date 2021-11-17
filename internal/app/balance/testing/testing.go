@@ -3,9 +3,11 @@ package testing
 import (
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/balance/models"
+	transaction_constants "avito-intern/internal/app/models"
 	transaction_models "avito-intern/internal/app/transaction/models"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestBalance(t *testing.T) *models.Balance {
@@ -46,5 +48,24 @@ func TestPaginator(t *testing.T) *transaction_models.Paginator {
 		Count:         5,
 		SortDirection: transaction_models.NO_DIRECTION,
 		SortField:     transaction_models.NO_ORDER,
+	}
+}
+func TestTransactions(t *testing.T) []transaction_models.Transaction {
+	t.Helper()
+	return []transaction_models.Transaction{
+		{
+			UserID:      1,
+			ReceiverID:  2,
+			Type:        transaction_constants.TextTransactionToType[transaction_constants.WRITE_OFF],
+			CreatedAt:   time.Now(),
+			Description: "decription of write-off",
+		},
+		{
+			UserID:      2,
+			ReceiverID:  1,
+			Type:        transaction_constants.TextTransactionToType[transaction_constants.TRANSFER],
+			CreatedAt:   time.Now(),
+			Description: "decription of transfer",
+		},
 	}
 }
