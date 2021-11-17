@@ -3,6 +3,7 @@ package balance_repository
 import (
 	"avito-intern/internal/app"
 	test_data "avito-intern/internal/app/balance/testing"
+	transaction_models "avito-intern/internal/app/models"
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -26,10 +27,9 @@ func (s *SuiteBalanceRepository) AfterTest(_, _ string) {
 	require.NoError(s.T(), s.Mock.ExpectationsWereMet())
 }
 func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_ERROR_DB() {
-	query := "SELECT user_id, amount from balance where user_id = $1"
 	userID := int64(1)
 	expError := DefaultErrDB
-	s.Mock.ExpectQuery(regexp.QuoteMeta(query)).
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryFindUserById)).
 		WithArgs(userID).WillReturnError(DefaultErrDB)
 
 	user, err := s.repo.FindUserByID(userID)
@@ -37,11 +37,10 @@ func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_ERROR_DB() {
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_NotFound() {
-	query := "SELECT user_id, amount from balance where user_id = $1"
 	userID := int64(1)
 	expError := NotFound
 
-	s.Mock.ExpectQuery(regexp.QuoteMeta(query)).
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryFindUserById)).
 		WithArgs(userID).WillReturnError(sql.ErrNoRows)
 
 	user, err := s.repo.FindUserByID(userID)
@@ -50,11 +49,10 @@ func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_NotFound() {
 }
 
 func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_OK() {
-	query := "SELECT user_id, amount from balance where user_id = $1"
 	userID := int64(1)
 	expBalance := test_data.TestBalance(s.T())
 
-	s.Mock.ExpectQuery(regexp.QuoteMeta(query)).
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryFindUserById)).
 		WithArgs(userID).WillReturnRows(
 		sqlmock.NewRows([]string{"user_id", "amount"}).
 			AddRow(expBalance.ID, expBalance.Amount))
@@ -65,21 +63,17 @@ func (s *SuiteBalanceRepository) TestBalanceRepository_FindUserByID_OK() {
 	assert.Nil(s.T(), err)
 }
 func (s *SuiteBalanceRepository) TestCreateAccount_ERROR_DB() {
-	query := "INSERT INTO balance(user_id) VALUES($1)"
-
 	userID := int64(1)
 	expError := DefaultErrDB
-	s.Mock.ExpectExec(regexp.QuoteMeta(query)).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryCreateAccount)).
 		WithArgs(userID).WillReturnError(DefaultErrDB)
 
 	err := s.repo.CreateAccount(userID)
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateAccount_OK() {
-	query := "INSERT INTO balance(user_id) VALUES($1)"
-
 	userID := int64(1)
-	s.Mock.ExpectExec(regexp.QuoteMeta(query)).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryCreateAccount)).
 		WithArgs(userID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -87,11 +81,10 @@ func (s *SuiteBalanceRepository) TestCreateAccount_OK() {
 	assert.NoError(s.T(), err)
 }
 func (s *SuiteBalanceRepository) TestAddBalance_ERROR_DB() {
-	query := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2 RETURNING amount"
 	expErr := DefaultErrDB
 
 	testB := test_data.TestBalance(s.T())
-	s.Mock.ExpectQuery(regexp.QuoteMeta(query)).
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryAddBalance)).
 		WithArgs(testB.Amount, testB.ID).
 		WillReturnError(expErr)
 
@@ -100,15 +93,21 @@ func (s *SuiteBalanceRepository) TestAddBalance_ERROR_DB() {
 	assert.Equal(s.T(), app.InvalidFloat, res)
 }
 func (s *SuiteBalanceRepository) TestAddBalance_OK() {
-	query := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2 RETURNING amount"
 	testB := test_data.TestBalance(s.T())
+	operationType := transaction_models.TextTransactionToType[transaction_models.REFILL]
+
+	testDecr := test_data.TestAddBalanceDescription(testB.ID, operationType, s.T())
 
 	expRes := testB.Amount * 2
 
-	s.Mock.ExpectQuery(regexp.QuoteMeta(query)).
+	s.Mock.ExpectQuery(regexp.QuoteMeta(queryAddBalance)).
 		WithArgs(testB.Amount, testB.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"amount"}).
 			AddRow(expRes))
+
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
+		WithArgs(operationType, testB.ID, testB.ID, testB.Amount, testDecr).
+		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	res, err := s.repo.AddBalance(testB.ID, testB.Amount)
 	assert.Nil(s.T(), err)
@@ -123,14 +122,12 @@ func (s *SuiteBalanceRepository) TestCreateTransfer_TransactionError() {
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateTransfer_WriteOffError() {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-
 	expError := DefaultErrDB
 	amount := float64(10)
 	testT := test_data.TestTransaction(s.T())
 
 	s.Mock.ExpectBegin()
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOff)).WithArgs(amount, testT.SenderID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOffBalance)).WithArgs(amount, testT.SenderID).
 		WillReturnError(expError)
 	s.Mock.ExpectRollback()
 
@@ -138,17 +135,14 @@ func (s *SuiteBalanceRepository) TestCreateTransfer_WriteOffError() {
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateTransfer_EnrollError() {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
-
 	expError := DefaultErrDB
 	amount := float64(10)
 	testT := test_data.TestTransaction(s.T())
 
 	s.Mock.ExpectBegin()
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOff)).WithArgs(amount, testT.SenderID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOffBalance)).WithArgs(amount, testT.SenderID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnroll)).WithArgs(amount, testT.ReceiverID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnrollBalance)).WithArgs(amount, testT.ReceiverID).
 		WillReturnError(expError)
 	s.Mock.ExpectRollback()
 
@@ -156,43 +150,41 @@ func (s *SuiteBalanceRepository) TestCreateTransfer_EnrollError() {
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateTransfer_AddTransactionError() {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
-	queryAddTransaction := "INSERT INTO transactions(from_id, to_id, amount) VALUES($1, $2, $3)"
-
 	expError := DefaultErrDB
 	amount := float64(10)
 	testT := test_data.TestTransaction(s.T())
 
+	transferDecr := test_data.TestTransferDescription(testT.SenderID, testT.ReceiverID, s.T())
+	operType := transaction_models.TextTransactionToType[transaction_models.TRANSFER]
 	s.Mock.ExpectBegin()
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOff)).WithArgs(amount, testT.SenderID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOffBalance)).WithArgs(amount, testT.SenderID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnroll)).WithArgs(amount, testT.ReceiverID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnrollBalance)).WithArgs(amount, testT.ReceiverID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
-		WithArgs(testT.SenderID, testT.ReceiverID, amount).
+		WithArgs(operType, testT.SenderID, testT.ReceiverID, amount, transferDecr).
 		WillReturnError(expError)
+
 	s.Mock.ExpectRollback()
 
 	err := s.repo.CreateTransfer(testT.SenderID, testT.ReceiverID, amount)
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateTransfer_CommitError() {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
-	queryAddTransaction := "INSERT INTO transactions(from_id, to_id, amount) VALUES($1, $2, $3)"
-
 	expError := DefaultErrDB
 	amount := float64(10)
 	testT := test_data.TestTransaction(s.T())
 
+	transferDecr := test_data.TestTransferDescription(testT.SenderID, testT.ReceiverID, s.T())
+	operType := transaction_models.TextTransactionToType[transaction_models.TRANSFER]
+
 	s.Mock.ExpectBegin()
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOff)).WithArgs(amount, testT.SenderID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOffBalance)).WithArgs(amount, testT.SenderID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnroll)).WithArgs(amount, testT.ReceiverID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnrollBalance)).WithArgs(amount, testT.ReceiverID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
-		WithArgs(testT.SenderID, testT.ReceiverID, amount).
+		WithArgs(operType, testT.SenderID, testT.ReceiverID, amount, transferDecr).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	s.Mock.ExpectCommit().WillReturnError(expError)
 
@@ -200,20 +192,19 @@ func (s *SuiteBalanceRepository) TestCreateTransfer_CommitError() {
 	assert.Equal(s.T(), NewDBError(expError), err)
 }
 func (s *SuiteBalanceRepository) TestCreateTransfer_OK() {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
-	queryAddTransaction := "INSERT INTO transactions(from_id, to_id, amount) VALUES($1, $2, $3)"
-
 	amount := float64(10)
 	testT := test_data.TestTransaction(s.T())
 
+	transferDecr := test_data.TestTransferDescription(testT.SenderID, testT.ReceiverID, s.T())
+	operType := transaction_models.TextTransactionToType[transaction_models.TRANSFER]
+
 	s.Mock.ExpectBegin()
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOff)).WithArgs(amount, testT.SenderID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryWriteOffBalance)).WithArgs(amount, testT.SenderID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnroll)).WithArgs(amount, testT.ReceiverID).
+	s.Mock.ExpectExec(regexp.QuoteMeta(queryEnrollBalance)).WithArgs(amount, testT.ReceiverID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	s.Mock.ExpectExec(regexp.QuoteMeta(queryAddTransaction)).
-		WithArgs(testT.SenderID, testT.ReceiverID, amount).
+		WithArgs(operType, testT.SenderID, testT.ReceiverID, amount, transferDecr).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	s.Mock.ExpectCommit()
 

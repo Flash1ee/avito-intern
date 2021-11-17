@@ -3,13 +3,28 @@ package balance_repository
 import (
 	"avito-intern/internal/app"
 	"avito-intern/internal/app/balance/models"
+	transaction_models "avito-intern/internal/app/models"
 	"database/sql"
+	"fmt"
 	"github.com/pkg/errors"
 )
 
 type BalanceRepository struct {
 	conn *sql.DB
 }
+
+const (
+	queryFindUserById    = "SELECT user_id, amount from balance where user_id = $1"
+	queryWriteOffBalance = "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
+	queryEnrollBalance   = "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
+	queryAddTransaction  = "INSERT INTO transactions(type, sender_id, receiver_id, amount, description) VALUES($1, $2, $3, $4, $5)"
+	queryCreateAccount   = "INSERT INTO balance(user_id) VALUES($1)"
+	queryAddBalance      = "UPDATE balance SET amount = amount + $1 WHERE user_id = $2 RETURNING amount"
+)
+const (
+	addBalanceDescriptions = "user <id = %d> %s account"
+	transferDescription    = "user <id = %d> send money to user <id = %d>"
+)
 
 func NewBalanceRepository(conn *sql.DB) *BalanceRepository {
 	return &BalanceRepository{
@@ -22,10 +37,9 @@ func NewBalanceRepository(conn *sql.DB) *BalanceRepository {
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
 func (repo *BalanceRepository) FindUserByID(userID int64) (*models.Balance, error) {
-	query := "SELECT user_id, amount from balance where user_id = $1"
 	balance := &models.Balance{}
 
-	if err := repo.conn.QueryRow(query, userID).Scan(&balance.ID, &balance.Amount); err != nil {
+	if err := repo.conn.QueryRow(queryFindUserById, userID).Scan(&balance.ID, &balance.Amount); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, NotFound
 		}
@@ -38,32 +52,33 @@ func (repo *BalanceRepository) FindUserByID(userID int64) (*models.Balance, erro
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
 func (repo *BalanceRepository) CreateTransfer(from int64, to int64, amount float64) error {
-	queryWriteOff := "UPDATE balance SET amount = amount - $1 WHERE user_id = $2"
-	queryEnroll := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2"
-	queryAddTransaction := "INSERT INTO transactions(from_id, to_id, amount) VALUES($1, $2, $3)"
+	operationType := transaction_models.TextTransactionToType[transaction_models.TRANSFER]
+	description := fmt.Sprintf(transferDescription, from, to)
 
 	transact, err := repo.conn.Begin()
 	if err != nil {
 		return NewDBError(err)
 	}
-	_, err = transact.Exec(queryWriteOff, amount, from)
+	_, err = transact.Exec(queryWriteOffBalance, amount, from)
 	if err != nil {
 		_ = transact.Rollback()
 		return NewDBError(err)
 	}
-	_, err = transact.Exec(queryEnroll, amount, to)
+	_, err = transact.Exec(queryEnrollBalance, amount, to)
 	if err != nil {
 		_ = transact.Rollback()
 		return NewDBError(err)
 	}
-	_, err = transact.Exec(queryAddTransaction, from, to, amount)
+	_, err = transact.Exec(queryAddTransaction, operationType, from, to, amount, description)
 	if err != nil {
 		_ = transact.Rollback()
 		return NewDBError(err)
 	}
+
 	if err = transact.Commit(); err != nil {
 		return NewDBError(err)
 	}
+
 	return nil
 }
 
@@ -71,12 +86,11 @@ func (repo *BalanceRepository) CreateTransfer(from int64, to int64, amount float
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
 func (repo *BalanceRepository) CreateAccount(userID int64) error {
-	query := "INSERT INTO balance(user_id) VALUES($1)"
-
-	_, err := repo.conn.Exec(query, userID)
+	_, err := repo.conn.Exec(queryCreateAccount, userID)
 	if err != nil {
 		return NewDBError(err)
 	}
+
 	return nil
 }
 
@@ -84,12 +98,25 @@ func (repo *BalanceRepository) CreateAccount(userID int64) error {
 // 		app.GeneralError with Errors
 // 			DefaultErrDB
 func (repo *BalanceRepository) AddBalance(userID int64, amount float64) (float64, error) {
-	query := "UPDATE balance SET amount = amount + $1 WHERE user_id = $2 RETURNING amount"
+	var description string
+	if amount < 0 {
+		description = fmt.Sprintf(
+			addBalanceDescriptions, userID, transaction_models.TextTransactionToType[transaction_models.WRITE_OFF])
+	} else {
+		description = fmt.Sprintf(
+			addBalanceDescriptions, userID, transaction_models.TextTransactionToType[transaction_models.REFILL])
+	}
 
 	var balance float64
-	err := repo.conn.QueryRow(query, amount, userID).Scan(&balance)
+	err := repo.conn.QueryRow(queryAddBalance, amount, userID).Scan(&balance)
 	if err != nil {
 		return app.InvalidFloat, NewDBError(err)
 	}
+
+	_, err = repo.conn.Exec(queryAddTransaction, transaction_models.TextTransactionToType[transaction_models.REFILL], userID, userID, amount, description)
+	if err != nil {
+		return app.InvalidFloat, NewDBError(err)
+	}
+
 	return balance, nil
 }

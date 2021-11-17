@@ -3,6 +3,7 @@ package testing
 import (
 	request_response_models "avito-intern/internal/app/balance/delivery/models"
 	"avito-intern/internal/app/balance/models"
+	"fmt"
 	"testing"
 )
 
@@ -28,4 +29,12 @@ func TestUpdateBalance(t *testing.T) *request_response_models.RequestUpdateBalan
 		Type:   models.ADD_BALANCE,
 		Amount: 100.2,
 	}
+}
+func TestAddBalanceDescription(id int64, operation string, t *testing.T) string {
+	t.Helper()
+	return fmt.Sprintf("user <id = %d> %s account", id, operation)
+}
+func TestTransferDescription(senderID int64, receiverID int64, t *testing.T) string {
+	t.Helper()
+	return fmt.Sprintf("user <id = %d> send money to user <id = %d>", senderID, receiverID)
 }

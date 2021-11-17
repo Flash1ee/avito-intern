@@ -61,6 +61,11 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
+	if userID < 0 {
+		h.Log(r).Infof("invalid user_id %v", userID)
+		h.Error(w, r, http.StatusBadRequest, handler.InvalidParameters)
+		return
+	}
 	amount, err := h.usecase.GetBalance(userID)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGetBalance)
@@ -71,7 +76,7 @@ func (h *BalanceHandler) GetBalanceHandler(w http.ResponseWriter, r *http.Reques
 		exchangeBalance, err := h.exchangeService.Exchange(amount, currency)
 		if err != nil {
 			h.Log(r).Warn(err)
-			h.Error(w, r, http.StatusBadRequest, err)
+			h.UsecaseError(w, r, err, CodeByErrorGetBalance)
 			return
 		}
 		amount = exchangeBalance
@@ -128,7 +133,7 @@ func (h *BalanceHandler) TransferMoneyHandler(w http.ResponseWriter, r *http.Req
 // @Success 200 {object} models.ResponseBalance
 // @Failure 400 {object} models.ErrResponse "invalid query param"
 // @Failure 404 {object} models.ErrResponse "user with this id not found"
-// @Failure 422 {object} models.ErrResponse "invalid body in request || not enough money for transfer"
+// @Failure 422 {object} models.ErrResponse "invalid body in request | not enough money for transfer"
 // @Failure 500 {object} models.ErrResponse "internal error"
 // @Router /balance/{:user_id} [POST]
 func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -146,6 +151,11 @@ func (h *BalanceHandler) UpdateBalanceHandler(w http.ResponseWriter, r *http.Req
 	}
 	userID, ok := h.GetInt64FromParam(w, r, "user_id")
 	if !ok {
+		return
+	}
+	if userID < 0 {
+		h.Log(r).Infof("invalid user_id %v", userID)
+		h.Error(w, r, http.StatusBadRequest, handler.InvalidParameters)
 		return
 	}
 	newBalance, err := h.usecase.UpdateBalance(userID, req.Amount, int(req.Type))
