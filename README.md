@@ -19,6 +19,7 @@ API и принимать/отдавать запросы/ответы в фор
 - Сервис реализован на языке `Golang` с использованием чистой архитектуры.
 - Уровни `delivery`, `usecase`, `repository` с использованием библиотеки `testify` и `gomock`.
 - Уровень `repository` протестирован с использованием sqlmock.
+- Возвращаемые ошибки `repository`, `usecase` задокументированы с использованием встроенных в `Golang` возможностей.
 - Логирование операций в файл в папку `/logs`
 - Реализованы `Middlewares` для: отслеживания паники, логирования.
 - Валидация реализована с помощью `ozzo-validation`.
@@ -28,11 +29,13 @@ API и принимать/отдавать запросы/ответы в фор
 - В качестве СУБД используется `PostgreSQL`.
 - API задокументировано с использованием Swagger по адресу `http:://localhost:8080/api/v1/swagger/`
 - Взаимодействие с проектом организовано посредством `Makefile`.
+- Подключен `Github Actions` для проверки стиля и сборки приложения.
 
 ## Дополнительные задания
-
+- Реализовано доп задание не получение списка транзакций.
 - Реализовано доп. задание на конвертацию баланса пользователя в другие валюты.
-- Использовано апи ЦБ РФ  
+- Использовано API ЦБ РФ.
+
  **Доступные валюты**
 ```text
 "AMD", "NOK", "TRY", "USD", "CAD", "CNY", "UAH", "CZK",
@@ -54,9 +57,23 @@ API и принимать/отдавать запросы/ответы в фор
 PostgreSQL поднимается на 5432 порту, он тоже должен быть свободен.
 
 ```bash
-docker-compose up
+make build-docker
+make run
 ```
+### Команды запуска утилит
 
+Для запуска тестов с покрытием:
+```bash
+make run-coverage
+```
+Для создание html странички с покрытием кода тестами:
+```bash
+make cover-html
+```
+Для генерации `API Swagger`
+```bash
+make generate-api
+```
 ## API
 
 По умолчанию валюта кошелька - рубль.
@@ -87,7 +104,7 @@ PS: если присутсвует `currency`, то баланс конверт
   "error": "string"
 }
 ```
-### Коды ответа
+### Описание кодов ответа
 - 200 - OK;
 - 400 - неверный параметр в запросе;
 - 404 - пользователь с id = user_id не найден;
@@ -103,7 +120,9 @@ POST /api/v1/balance/{:user_id}
 
 ### Параметры запроса
 
-- user_id - id пользователя Тело запроса:
+- user_id - id пользователя 
+
+### Тело запроса:
 
 ```json
 {
@@ -128,7 +147,7 @@ POST /api/v1/balance/{:user_id}
   "error": "string"
 }
 ```
-### Коды ответа
+### Описание кодов ответа
 - 200 - OK;
 - 400 - неверный параметр в запросе;
 - 404 - пользователь с id = user_id не найден;
@@ -171,9 +190,240 @@ POST /api/v1/transfer
   "error": "string"
 }
 ```
-### Коды ответа
+
+### Описание кодов ответа
 - 200 - OK;
 - 404 - отправитель/получатель не найден;
 - 422 - ошибка в теле запроса;
 - 422 - недостаточно средств для перевода;
 - 500 - ошибка сервера.
+
+4. Получение списка транзакций.
+```text
+GET /transaction/{:user_id}
+```
+### Параметры запроса
+- user_id - id пользователя;
+- page - номер страницы списка транзакций;
+- count - количество транзакций на 1 странице;
+- sort - сортировка по полю, опциональный параметр
+  - sort=date - сортировка по дате транзакции;
+  - sort=sum - сортировка по размеру транзакции;
+- direction - условие сортировки(только если указан параметр sort)
+  - asc - по возрастанию;
+  - desc - по убыванию
+
+### Ответ
+**200 - OK**
+```json
+{
+  "transactions": [
+    {
+      "amount": 0,
+      "created_at": "2021-17-11T20:09:22.058143Z",
+      "description": "string",
+      "id": 0,
+      "receiver_id": 0,
+      "type": "string"
+    }
+  ]
+}
+```
+**204 - NoContent**
+```json
+{
+  "OK": "transactions not found"
+}
+```
+**404, 422, 500**
+```json
+{
+  "error": "string"
+}
+```
+### Описание кодов ответа
+- 200 - OK;
+- 204 - транзакций пользователя не найдено;
+- 400 - ошибка в параметрах запроса
+  - в id пользователя;
+  - в page;
+  - в count;
+  - в sort;
+  - в direction;
+  - использование direction без sort;
+- 500 - ошибка сервера.
+
+### Примеры запросов
+**Запросы делались с использованием `Postman`**
+
+Запрос на количество транзакций без сортировки:
+```text
+GET http://localhost:8080/api/v1/transaction/2?page=2&count=3
+```
+### Ответ
+**Код ответа - 200**
+
+```json
+{
+    "transactions": [
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:24.099571Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:29.102226Z",
+            "amount": 100
+        }
+    ]
+}
+```
+Запрос на количество транзакций c сортировкой по дате:
+```text
+GET http://localhost:8080/api/v1/transaction/2?page=2&count=3&sort=date
+```
+### Ответ
+**Код ответа - 200**
+
+```json
+{
+    "transactions": [
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:24.099571Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:29.102226Z",
+            "amount": 100
+        }
+    ]
+}
+```
+Запрос на количество транзакций c сортировкой по дате по убыванию:
+```text
+GET http://localhost:8080/api/v1/transaction/2?page=2&count=3&sort=date&direction=desc
+```
+### Ответ
+**Код ответа - 200**
+
+```json
+{
+  "transactions": [
+    {
+      "sender_id": 2,
+      "type": "refill",
+      "description": "user <id = 2> refill account",
+      "created_at": "2021-11-17T19:55:47.277489Z",
+      "amount": 100
+    },
+    {
+      "sender_id": 2,
+      "type": "refill",
+      "description": "user <id = 2> refill account",
+      "created_at": "2021-11-17T19:55:45.759548Z",
+      "amount": 100
+    }
+  ]
+}
+```
+Запрос на количество транзакций c сортировкой по дате по убыванию с первой страницы 
+и количеством заведомо большим имеющихся в базе транзакций:
+```text
+GET http://localhost:8080/api/v1/transaction/2?page=1&count=10&sort=date&direction=desc
+```
+### Ответ
+**Код ответа - 200**
+
+```json
+{
+    "transactions": [
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:29.102226Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "receiver_id": 1,
+            "type": "transfer",
+            "description": "user <id = 2> send money to user <id = 1>",
+            "created_at": "2021-11-17T19:56:24.099571Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "type": "refill",
+            "description": "user <id = 2> refill account",
+            "created_at": "2021-11-17T19:55:48.480167Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "type": "refill",
+            "description": "user <id = 2> refill account",
+            "created_at": "2021-11-17T19:55:47.277489Z",
+            "amount": 100
+        },
+        {
+            "sender_id": 2,
+            "type": "refill",
+            "description": "user <id = 2> refill account",
+            "created_at": "2021-11-17T19:55:45.759548Z",
+            "amount": 100
+        }
+    ]
+}
+```
+Запрос для несуществующего пользователя:
+```text
+GET http://localhost:8080/api/v1/transaction/5?page=1&count=10&sort=date&direction=desc
+```
+### Ответ
+**Код ответа - 204**
+```json
+
+```
+Запрос с ошибкой в параметре запроса:
+```text
+GET http://localhost:8080/api/v1/transaction/5?page=1&count=-1&sort=date&direction=desc```
+### Ответ
+**Код ответа - 400**
+```json
+{"error":"invalid query param count"}
+```
+Запрос с ошибкой в параметре запроса - использование направления сортировки в sort:
+```text
+GET http://localhost:8080/api/v1/transaction/5?page=1&count=5&direction=desc
+```
+### Ответ
+**Код ответа - 400**
+```json
+{"error":"invalid query param direction"}
+```
+Запрос без пагинации:
+```text
+GET http://localhost:8080/api/v1/transaction/5
+```
+### Ответ
+**Код ответа - 400**
+```json
+{"error":"invalid parameters in query"}
+```

@@ -5,6 +5,9 @@ import (
 	"avito-intern/internal/app/balance/balance_repository"
 	"avito-intern/internal/app/balance/balance_usecase"
 	balance_handler "avito-intern/internal/app/balance/delivery/http"
+	transaction_handler "avito-intern/internal/app/transaction/delivery/http"
+	"avito-intern/internal/app/transaction/transaction_repository"
+	"avito-intern/internal/app/transaction/transaction_usecase"
 	"avito-intern/internal/pkg/handler"
 	"avito-intern/internal/pkg/utilits"
 	"fmt"
@@ -48,7 +51,15 @@ func (s *Server) Start() error {
 	balanceRepository := balance_repository.NewBalanceRepository(s.connections.SqlConnection)
 	balanceUsecase := balance_usecase.NewBalanceUsecase(balanceRepository)
 
-	h := balance_handler.NewBalanceHandler(routerApi, s.logger, balanceUsecase, s.config.CurrencyAPI)
+	transactionRepository := transaction_repository.NewTransactionRepository(s.connections.SqlConnection)
+	transactionUsecase := transaction_usecase.NewTransactionUsecase(transactionRepository)
+
+	hBalance := balance_handler.NewBalanceHandler(routerApi, s.logger, balanceUsecase, s.config.CurrencyAPI)
+	hTransactions := transaction_handler.NewTransactionHandler(routerApi, s.logger, transactionUsecase)
+
+	hBalance.BaseLog().Info("initialize Balance Handler success")
+	hTransactions.BaseLog().Info("initialize Transaction handler success")
+
 	s.logger.Info("Server start")
-	return http.ListenAndServe(s.config.BindAddr, h)
+	return http.ListenAndServe(s.config.BindAddr, routerApi)
 }

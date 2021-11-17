@@ -77,6 +77,23 @@ func (s *SuiteBalanceHandler) TestBalanceHandler_GetBalanceHandler_InvalidQueryP
 	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
 
 }
+func (s *SuiteBalanceHandler) TestBalanceHandler_GetBalanceHandler_InvalidUserID() {
+	tb := &TestTable{
+		Name:              "Invalid userID",
+		Data:              struct{}{},
+		ExpectedMockTimes: 1,
+		ExpectedCode:      http.StatusBadRequest,
+	}
+
+	recorder := httptest.NewRecorder()
+	path := "/balance/-1"
+	b := bytes.Buffer{}
+	reader, _ := http.NewRequest(http.MethodGet, path, &b)
+	s.handler.ServeHTTP(recorder, reader)
+
+	assert.Equal(s.T(), tb.ExpectedCode, recorder.Code)
+
+}
 func (s *SuiteBalanceHandler) TestBalanceHandler_GetBalanceHandler_GetBalanceError() {
 	tb := &TestTable{
 		Name:              "Usecase error on get balance - balance not found",

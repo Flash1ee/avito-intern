@@ -17,8 +17,8 @@ build: generate-api
 	go build -o server.out -v ./cmd/server
 
 generate-api:
-	go get -u github.com/swaggo/swag/cmd/swag
-	swag init -g cmd/server/main.go -o docs
+	go install github.com/swaggo/swag/cmd/swag@v1.6.5
+	swag init -g ./cmd/server/main.go -o docs
 
 build-docker:
 	docker build --no-cache --network host -f ./docker/Dockerfile . --tag balance-app
@@ -38,4 +38,6 @@ cover-html:
 
 clean:
 	rm -rf cover.html cover cover2 *.out
+clean-logs:
+	rm -rf ./logs/*.log
 

@@ -14,6 +14,8 @@ services:
       - ./logs:/app/logs
     depends_on:
       - balance-db
+    environment:
+      WAIT_HOSTS: balance-db:5432
   balance-db:
     image: postgres:latest
     expose:
