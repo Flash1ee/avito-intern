@@ -1,7 +1,5 @@
 LOG_DIR=./logs
 
-stop-redis:
-	systemctl stop redis
 stop-postgres:
 	systemctl stop postgresql
 
